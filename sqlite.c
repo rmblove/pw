@@ -12,6 +12,7 @@ sqlite3 *init_sqlite(sqlite3 *db, const char *path_to_db){
         fprintf(stderr, "Can not open the database : %s\n", sqlite3_errmsg(db));
         fprintf(stderr, "ErrorCode : %d\n", err);
         sqlite3_close(db);
+        exit(2);
     }
     return db;
 }
@@ -22,15 +23,24 @@ int end_sqlite(sqlite3 *db){
     return 0;
 }
 
+
 int sqlite_nocallback(sqlite3 *db, const char *sql){
     int err = 0;
     char *errmsg;
     err = sqlite3_exec(db, sql, 0, 0, &errmsg);
     if(err){
         fprintf(stderr, "Can not insert into db : %s \n", errmsg);
+        fprintf(stderr, "ErrorCode : %d\n", err);
         sqlite3_free(errmsg);
         return err;
     }
+    return 0;
+}
+
+int create_table(sqlite3 *db){
+    char *sql = "CREATE TABLE passwd (id INTEGER PRIMARY KEY, domain TEXT, username TEXT, password TEXT);";
+    int err = sqlite_nocallback(db, sql);
+    if(err) exit(2);
     return 0;
 }
 
@@ -56,13 +66,34 @@ static int find_callback(void *isfind, int argc, char **argv, char **azColName){
     printf("\n");
     return 0;
 }
-// if domain is finded, return 0 else return -1;
+// if domain is found, return 0 else return -1;
 int find_domain(sqlite3 *db, const char *domain){
     int isfind = -1;
     char *sql;
     int err = 0;
     asprintf(&sql, "SELECT domain, username FROM passwd WHERE domain = '%s';", domain);
-    err = exec_sql_wcallback(db, sql, find_callback, &isfind); //if find nothing, find_callback would return 1;
+    err = exec_sql_wcallback(db, sql, find_callback, &isfind);
+    free(sql);
+    if(err) exit(2);
+    return isfind;
+}
+
+static int find_table(void *isfind, int argc, char **argv, char **azColName){
+    int *changeisfind = (int*)isfind;
+    *changeisfind = -1;
+    if(argv[0] && !strcmp(argv[0], "passwd")){
+        *changeisfind = 0;
+    }
+    return 0;
+}
+
+// if table passwd is found, return 0 else return -1;
+int find_table_passwd(sqlite3 *db){
+    int isfind = -1;
+    char *sql;
+    int err = 0;
+    asprintf(&sql, "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;");
+    err = exec_sql_wcallback(db, sql, find_table, &isfind);
     free(sql);
     if(err) exit(2);
     return isfind;

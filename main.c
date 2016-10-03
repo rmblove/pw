@@ -1,5 +1,5 @@
 /* Command-line interface for pw (password book)
- * version:  0.1
+ * version:  0.2
  * author:   lex.xiao
  */
 #include <sqlite3.h>
@@ -11,7 +11,7 @@
 #include "base64.h"
 #include "aes_crypt.h"
 #include "sqlite.h"
-#define VERSION 0.1
+#define VERSION 0.2
 #define PATH_TO_DB "./password.db"
 void help(){
     printf("Command-line interface for pw (password book) \n"
@@ -161,14 +161,40 @@ int main(int argc, char *argv[]){
     int errcode = 0;
     sqlite3 *db;
     db = init_sqlite(db, PATH_TO_DB);
-    if(argc == 2 && !strcmp(argv[1], "-l")) {
-        list(db);
-        goto freedb;
-    }
-    if(argc != 3) {
+    if(argc == 1 || argc >3){
         help();
         goto freedb;
     }
+    int table_passwd_exist = find_table_passwd(db);
+    printf("tble_pass_exit:  %d\n",table_passwd_exist);
+    if(table_passwd_exist == -1 && !strcmp(argv[1], "init") && argc == 2){
+        create_table(db);
+        goto freedb;
+    }
+    if(find_table_passwd(db) == -1){
+        printf("No table passwd in the password.db\n"
+               "Try 'pw init' to create passwd    \n");
+        goto freedb;
+    }
+    if(argc == 3) goto argv3;
+argv2:
+    if(!strcmp(argv[1], "-l")) {
+        list(db);
+        goto freedb;
+    }
+    else if(!strcmp(argv[1], "-h")){
+        help();
+        goto freedb;
+    }
+    else if(!strcmp(argv[1], "init")){
+        printf("The passswd is already exist!\n");;
+        goto freedb;
+    }
+    else {
+        help();
+        goto freedb;
+    }
+argv3:
     if (!strcmp(argv[1], "-a")){
         add(db, argv[2]);
     }
