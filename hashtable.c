@@ -8,14 +8,14 @@
 #include <assert.h>
 #include <string.h>
 
-def struct listnode_s{
+typedef struct listnode_s{
     int key;
     char* data;
-    struct listnode* next;
-    struct lsitnode* prev;
+    struct listnode_s* next;
+    struct listnode_s* prev;
 } listnode_t;
 
-def struct list_s{
+typedef struct list_s{
     listnode_t* nil;
     int count;
 } list_t;
@@ -34,12 +34,12 @@ initlist(){
 }
 
 void
-insertlist(list_t* list, listnode_t* listnode){
-    listnode->next = list->nil->next;
-    list->nil->next->prev = listnode;
-    list->nil->next = listnode;
-    listnode->prev = list.nil;
-    list->count++;
+insertlist(list_t* l ,listnode_t* lnode){
+    lnode->next = l->nil->next;
+    l->nil->next->prev = lnode;
+    l->nil->next = lnode;
+    lnode->prev = l->nil;
+    l->count++;
 }
 
 listnode_t*
@@ -49,18 +49,21 @@ searchlist(list_t* list, int key){
     while(x != list->nil && x->key != key){
         x = x->next;
     }
+    if(x == list->nil) return NULL;
     return x;
 }
 
 void
 deletelist(list_t* list, listnode_t* listnode){
-    assert((listnode_t* x = searchlist(list, listnode)) != NULL);
+    listnode_t* test;
+    test = searchlist(list, listnode->key);
+    assert(test != NULL);
     listnode->prev->next = listnode->next;
-    listnode->next->prev = listndoe->prev;
+    listnode->next->prev = listnode->prev;
     list->count--;
 }
 
-void applylist(list_t* list, void (*func)(listnode_t*)){
+void applylist(list_t* list, void (*func)(void*)){
     assert(list != NULL);
     listnode_t* x = list->nil->next;
     while(x != list->nil){
@@ -73,35 +76,50 @@ void applylist(list_t* list, void (*func)(listnode_t*)){
 int
 hashfunc(int key, int m){
     int result = 0;
-    result = (int)(m * ((key * 0.6180339887)%1));
+    result = (int)(m * ((key * 0.6180339887)-(int)(key * 0.6180339887)));
     return result;
 }
 
-def struct hashtable_s{
-    int slots = 100;
-    int used = 0;
-    list_t* hashtable;
+typedef struct hashtable_s{
+    int slots;
+    int used;
+    list_t** hashtable;
 } hashtable_t;
 
 void inithashtable(hashtable_t* ht){
-    ht->hashtable = malloc(sizeof(list_t)*ht->slots);
+    ht->hashtable = malloc(sizeof(list_t*)*ht->slots);
     assert(ht->hashtable != NULL);
-    memtset(ht->hashtable, 0, sizeof(list_t)*ht->slots);
+    memset(ht->hashtable, 0, sizeof(list_t*)*ht->slots);
+    ht->slots = 100;
+    ht->used = 0;
+}
+
+void applyhashtable(hashtable_t* ht, void(*func)(void*)){
+    int i = 0;
+    while(i < ht->slots){
+        if(ht->hashtable[i] != NULL){
+            applylist(ht->hashtable[i],func);
+        }
+        i++;
+    }
 }
 
 void inserthashtable(hashtable_t* ht, listnode_t *x){
     if(ht->used > ht->slots*2/3){
         hashtable_t* newht = malloc(sizeof(hashtable_t));
+        assert(newht != NULL);
         newht->slots = ht->slots * 2 + 1;
         newht->used = 0;
-        newht->hashtable = malloc(sizeof(list_t)*newht->slots);
+        newht->hashtable = malloc(sizeof(list_t*)*newht->slots);
+        assert(newht->hashtable != NULL);
+        memset(newht->hashtable, 0, sizeof(list_t*)*newht->slots);
         int i = 0;
         while(i < ht->slots){
-            list_t* list = ht->hashtable[i];
+            list_t* list = (ht->hashtable)[i];
             if(list != NULL){
-                listnode_t x = list->nil;
+                listnode_t* ht_node = list->nil;
                 while(x->next != list->nil){
-                    inserthashtable(newht, x->next);
+                    inserthashtable(newht, ht_node->next);
                     x = x->next;
                 }
             }
@@ -110,18 +128,18 @@ void inserthashtable(hashtable_t* ht, listnode_t *x){
         ht->slots = newht->slots;
         ht->used = newht->used;
         applyhashtable(ht, free);
-        list_t* oldtable = ht->hashtable;
+        list_t** oldtable = ht->hashtable;
         ht->hashtable = newht->hashtable;
         free(oldtable);
         free(newht);
     }
     int hashvalue = hashfunc(x->key, ht->slots);
-    if(ht[hashvalue]==NULL){
+    if(ht->hashtable[hashvalue]==NULL){
         list_t* list = initlist();
         insertlist(list, x);
-        ht[hashvalue] = list;}
+        ht->hashtable[hashvalue] = list;}
     else{
-        insertlist(ht[hashvalue], x);
+        insertlist(ht->hashtable[hashvalue], x);
     }
     ht->used++;
 }
@@ -142,19 +160,10 @@ void updatehashtable(hashtable_t* ht, listnode_t* x){
 }
 
 listnode_t* deletehashtable(hashtable_t* ht, int key){
-    listnode_t* oldnode = searchhashtable(ht, x->key);
+    listnode_t* oldnode = searchhashtable(ht, key);
     assert(oldnode !=NULL);
     deletelist(ht->hashtable[hashfunc(key, ht->slots)], oldnode);
     ht->used--;
     return oldnode;
 }
 
-void applyhashtable(hashtable_t* ht, void (*func)(listnode_t*)){
-    int i = 0;
-    while(i < ht->slots){
-        if(ht->hashtable[i] != NULL){
-            applylist(ht->hashtable[i],func);
-        }
-        i++;
-    }
-}

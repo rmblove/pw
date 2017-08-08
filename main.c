@@ -16,7 +16,7 @@
 void help(){
     printf("Command-line interface for pw (password book) \n"
            "Encrypt Mode : AES256                         \n"
-           "VERSION : 0.1                                 \n"
+           "VERSION : 0.2                                 \n"
            "pw -[armfs] opinions                          \n"
            "     -a  add username and password                 \n"
            "         eg. pw -a domain:username:passwd          \n"
@@ -108,6 +108,7 @@ int find(sqlite3 *db, const char* argv){
 }
 
 int rmdomain(sqlite3 *db, const char * argv){
+    checkdomain(argv);
     int isfind = find(db, argv);
     if(isfind == -1){
         fprintf(stderr, "Fail in rmdomain(): no such domain found in database\n");
@@ -166,7 +167,7 @@ int main(int argc, char *argv[]){
         goto freedb;
     }
     int table_passwd_exist = find_table_passwd(db);
-    printf("tble_pass_exit:  %d\n",table_passwd_exist);
+    //printf("tble_pass_exit:  %d\n",table_passwd_exist);
     if(table_passwd_exist == -1 && !strcmp(argv[1], "init") && argc == 2){
         create_table(db);
         goto freedb;

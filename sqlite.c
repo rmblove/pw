@@ -120,10 +120,11 @@ static int pw_callback(void *key, int argc, char **argv, char **azColName){
     char *temp = passwd_decode_base64; //free(temp);
     char *passwd_decrypted = decrypt_aes256(domain, passwd_decode_base64, (char *)key);
     char *show[] = {domain, username, passwd_decrypted};
-    for(i=0; i<argc; i++){
-        printf("%s : %s \n", azColName[i], show[i]);
-    }
-    printf("\n");
+    printf("%s\n", passwd_decrypted);
+    //for(i=0; i<argc; i++){
+    //    printf("%s : %s \n", azColName[i], show[i]);
+    //}
+    //printf("\n");
     free(temp);
     free(passwd_decrypted);
     return 0;
